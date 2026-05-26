@@ -1,42 +1,52 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>AI Motion</title>
+<title>AI Motion Generator</title>
 
 <style>
+
 body{
 background:#111;
-color:white;
 font-family:Arial;
 text-align:center;
-padding:30px;
+color:white;
+padding:20px;
 }
 
 .box{
 background:#222;
 padding:20px;
 border-radius:20px;
-max-width:350px;
+max-width:400px;
 margin:auto;
+margin-top:40px;
 }
 
 button{
 padding:15px 25px;
-font-size:18px;
 background:#00bfff;
-color:white;
 border:none;
+color:white;
+font-size:18px;
 border-radius:10px;
 margin-top:20px;
+cursor:pointer;
 }
 
 img,video{
-width:250px;
+width:100%;
 margin-top:20px;
 border-radius:15px;
-display:none;
 }
+
+#status{
+margin-top:15px;
+font-size:16px;
+color:#00ffcc;
+}
+
 </style>
+
 </head>
 
 <body>
@@ -49,17 +59,21 @@ display:none;
 
 <br><br>
 
+<label>Upload Motion Video</label>
+
+<br><br>
+
+<input type="file" id="videoInput">
+
+<br><br>
+
 <button onclick="generateMotion()">
 Generate Motion
 </button>
 
-<br><br>
-
-<img id="preview">
+<p id="status"></p>
 
 <video id="outputVideo" controls></video>
-
-<p id="status"></p>
 
 </div>
 
@@ -67,62 +81,127 @@ Generate Motion
 
 const API_TOKEN = "r8_OgIfnd6uzs0dxXGXGahsl6eliyABzU83ybRzM";
 
-async function generateMotion() {
+async function uploadFile(file){
 
-const photo =
-document.getElementById("photoInput").files[0];
-
-if (!photo) {
-alert("Photo upload karo");
-return;
-}
-
-document.getElementById("status").innerText =
-"Generating AI Motion...";
-
-const imageUrl =
-URL.createObjectURL(photo);
-
-document.getElementById("preview").src =
-imageUrl;
-
-document.getElementById("preview").style.display =
-"block";
-
-try {
+const formData = new FormData();
+formData.append("content", file);
 
 const response = await fetch(
-"https://api.replicate.com/v1/predictions",
+"https://dreambooth-api-experimental.replicate.com/upload",
 {
-method: "POST",
-headers: {
-"Authorization": "Token " + API_TOKEN,
-"Content-Type": "application/json"
+method:"POST",
+headers:{
+Authorization:`Token ${API_TOKEN}`
 },
-body: JSON.stringify({
-version:
-"3f0457e0a029d658ce4f8a7e8b6c11f1a5f7d1b6",
-input: {
-prompt: "make image move"
-}
-})
+body:formData
 }
 );
 
 const data = await response.json();
 
-console.log(data);
+return data.url;
 
-document.getElementById("status").innerText =
-"AI Connected Successfully!";
+}
+
+async function generateMotion(){
+
+const photoFile =
+document.getElementById("photoInput").files[0];
+
+const videoFile =
+document.getElementById("videoInput").files[0];
+
+if(!photoFile || !videoFile){
+
+alert("Photo aur Motion Video dono upload karo");
+
+return;
+
+}
+
+document.getElementById("status").innerHTML =
+"AI Generating Motion...";
+
+try{
+
+const imageUrl = await uploadFile(photoFile);
+
+const motionVideoUrl = await uploadFile(videoFile);
+
+const response = await fetch(
+"https://api.replicate.com/v1/predictions",
+{
+method:"POST",
+
+headers:{
+"Content-Type":"application/json",
+Authorization:`Token ${API_TOKEN}`
+},
+
+body:JSON.stringify({
+
+version:
+"3f0457eaf0f7c5b2d3f3a4d2fdbef674e7dc86d51fdd8f04fbfdbb6c4d7a8f2d",
+
+input:{
+image:imageUrl,
+motion_video:motionVideoUrl
+}
+
+})
+
+}
+);
+
+const prediction = await response.json();
+
+checkStatus(prediction.urls.get);
 
 }
 catch(error){
 
 console.log(error);
 
-document.getElementById("status").innerText =
-"Connection Error";
+document.getElementById("status").innerHTML =
+"Error aa gaya";
+
+}
+
+}
+
+async function checkStatus(url){
+
+const response = await fetch(url,{
+headers:{
+Authorization:`Token ${API_TOKEN}`
+}
+});
+
+const result = await response.json();
+
+if(result.status==="succeeded"){
+
+document.getElementById("status").innerHTML =
+"Motion Generated Successfully";
+
+document.getElementById("outputVideo").src =
+result.output;
+
+}
+else if(result.status==="failed"){
+
+document.getElementById("status").innerHTML =
+"Generation Failed";
+
+}
+else{
+
+document.getElementById("status").innerHTML =
+"AI Processing...";
+
+setTimeout(()=>{
+checkStatus(url);
+},3000);
 
 }
 
