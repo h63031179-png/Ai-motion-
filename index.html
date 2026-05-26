@@ -1,39 +1,68 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>HF AI Motion</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Motion Generator</title>
 
 <style>
 body{
+margin:0;
+padding:0;
 background:#000;
 font-family:Arial;
-text-align:center;
-padding:30px;
-color:white;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
 }
 
 .box{
 background:#1e1e1e;
 padding:20px;
-border-radius:20px;
-max-width:350px;
-margin:auto;
+border-radius:15px;
+width:320px;
+text-align:center;
+color:white;
+box-shadow:0 0 20px rgba(0,0,0,0.5);
+}
+
+h1{
+font-size:32px;
+margin-bottom:20px;
+}
+
+input{
+margin:10px 0;
+color:white;
+width:100%;
 }
 
 button{
-padding:14px 25px;
-border:none;
-border-radius:10px;
 background:#00bfff;
+border:none;
+padding:12px 20px;
+border-radius:10px;
 color:white;
 font-size:18px;
+cursor:pointer;
 margin-top:15px;
+}
+
+button:hover{
+background:#009acd;
 }
 
 img,video{
 width:100%;
-border-radius:15px;
+margin-top:20px;
+border-radius:12px;
+}
+
+#status{
 margin-top:15px;
+color:#00ffcc;
+font-size:16px;
 }
 </style>
 </head>
@@ -44,19 +73,15 @@ margin-top:15px;
 
 <h1>AI Motion Generator</h1>
 
-<input type="file" id="imageInput">
+<input type="file" id="imageInput" accept="image/*">
 
-<br><br>
+<button onclick="generateVideo()">Generate Motion</button>
 
-<button onclick="generateVideo()">
-Generate Motion
-</button>
+<div id="status"></div>
 
-<p id="status"></p>
+<img id="previewImage">
 
-<img id="preview">
-
-<video id="video" controls></video>
+<video id="outputVideo" controls autoplay loop></video>
 
 </div>
 
@@ -66,27 +91,27 @@ const HF_TOKEN = "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";
 
 async function generateVideo(){
 
-const file = document.getElementById("imageInput").files[0];
+const imageFile = document.getElementById("imageInput").files[0];
 
-if(!file){
-alert("Upload image first");
+if(!imageFile){
+alert("Please upload image");
 return;
 }
 
-document.getElementById("status").innerHTML =
-"Generating AI Motion...";
-
-const preview = document.getElementById("preview");
-preview.src = URL.createObjectURL(file);
+document.getElementById("status").innerHTML = "AI Generating Motion...";
 
 const reader = new FileReader();
 
 reader.onload = async function(){
 
+const imageBase64 = reader.result;
+
+document.getElementById("previewImage").src = imageBase64;
+
 try{
 
 const response = await fetch(
-"https://api-inference.huggingface.co/models/stabilityai/stable-video-diffusion-img2vid-xt",
+"https://api-inference.huggingface.co/models/alibaba-pai/EasyAnimateV3-XL-2-InP",
 {
 method:"POST",
 headers:{
@@ -94,34 +119,42 @@ headers:{
 "Content-Type":"application/json"
 },
 body:JSON.stringify({
-inputs:reader.result
+inputs:"A boy smiling and talking naturally, realistic motion, cinematic live portrait",
+image:imageBase64
 })
 }
 );
 
 if(!response.ok){
-throw new Error("AI generation failed");
+
+document.getElementById("status").innerHTML =
+"Server Busy Or Free Limit Finished";
+
+return;
 }
 
 const blob = await response.blob();
 
 const videoURL = URL.createObjectURL(blob);
 
-document.getElementById("video").src = videoURL;
+document.getElementById("outputVideo").src = videoURL;
 
 document.getElementById("status").innerHTML =
 "Motion Generated Successfully";
 
-}catch(err){
+}
+catch(error){
 
 document.getElementById("status").innerHTML =
-"Error: " + err.message;
+"Error Generating Video";
+
+console.log(error);
 
 }
 
 };
 
-reader.readAsDataURL(file);
+reader.readAsDataURL(imageFile);
 
 }
 
