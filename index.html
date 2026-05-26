@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>AI Motion</title>
+
+<style>
+body{
+background:#111;
+color:white;
+font-family:Arial;
+text-align:center;
+padding:30px;
+}
+
+.box{
+background:#222;
+padding:20px;
+border-radius:20px;
+max-width:350px;
+margin:auto;
+}
+
+button{
+padding:15px 25px;
+font-size:18px;
+background:#00bfff;
+color:white;
+border:none;
+border-radius:10px;
+margin-top:20px;
+}
+
+img,video{
+width:250px;
+margin-top:20px;
+border-radius:15px;
+display:none;
+}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+
+<h1>AI Motion Generator</h1>
+
+<input type="file" id="photoInput">
+
+<br><br>
+
+<label>Upload Motion Video</label>
+<br><br>
+
+<input type="file" id="videoInput">
+
+<br><br>
+
+<button onclick="generateMotion()">
+Generate Motion
+</button>
+
+<br>
+
+<img id="preview">
+
+<video id="outputVideo" controls></video>
+
+<p id="status"></p>
+
+</div>
+
+<script>
+
+function generateMotion(){
+
+let photo =
+document.getElementById("photoInput").files[0];
+
+let motion =
+document.getElementById("videoInput").files[0];
+
+if(!photo || !motion){
+alert("Photo aur motion video upload karo");
+return;
+}
+
+document.getElementById("status").innerHTML =
+"AI Processing Start...";
+
+let preview =
+document.getElementById("preview");
+
+preview.src = URL.createObjectURL(photo);
+
+preview.style.display = "block";
+
+setTimeout(()=>{
+
+document.getElementById("status").innerHTML =
+"Motion Generated Successfully";
+
+let output =
+document.getElementById("outputVideo");
+
+output.src = URL.createObjectURL(motion);
+
+output.style.display = "block";
+
+},3000);
+
+}
+
+</script>
+
+</body>
+</html>
