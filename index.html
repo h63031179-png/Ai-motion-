@@ -1,38 +1,35 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-
 <title>AI Motion Generator</title>
 
 <style>
-
 body{
 background:#000;
 font-family:Arial;
-text-align:center;
-padding:20px;
 color:white;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
 }
 
 .box{
-background:#222;
+background:#1e1e1e;
 padding:20px;
 border-radius:20px;
-max-width:400px;
-margin:auto;
-margin-top:30px;
+width:320px;
+text-align:center;
 }
 
 button{
 background:#00bfff;
-border:none;
-padding:15px 25px;
 color:white;
-font-size:18px;
+border:none;
+padding:12px 20px;
 border-radius:10px;
-margin-top:20px;
-cursor:pointer;
+font-size:18px;
+margin-top:15px;
 }
 
 img,video{
@@ -40,14 +37,7 @@ width:100%;
 margin-top:20px;
 border-radius:15px;
 }
-
-#status{
-margin-top:15px;
-color:#00ffcc;
-}
-
 </style>
-
 </head>
 
 <body>
@@ -56,19 +46,11 @@ color:#00ffcc;
 
 <h1>AI Motion Generator</h1>
 
-<input type="file" id="photoInput">
+<input type="file" id="imageInput">
 
 <br><br>
 
-<label>Upload Motion Video</label>
-
-<br><br>
-
-<input type="file" id="videoInput">
-
-<br><br>
-
-<button onclick="generateMotion()">
+<button onclick="generateVideo()">
 Generate Motion
 </button>
 
@@ -76,152 +58,125 @@ Generate Motion
 
 <img id="preview">
 
-<video id="outputVideo" controls></video>
+<video id="video" controls></video>
 
 </div>
 
 <script>
 
-const API_TOKEN =
-"r8_OgIfnd6uzs0dxXGXGahsl6eliyABzU83ybRzM";
+const API_TOKEN = "YOUR_TOKEN_HERE";
 
-async function uploadFile(file){
+async function generateVideo(){
+
+const imageFile =
+document.getElementById("imageInput").files[0];
+
+if(!imageFile){
+alert("Upload image first");
+return;
+}
+
+document.getElementById("status").innerText =
+"Uploading image...";
 
 const formData = new FormData();
+formData.append("file", imageFile);
 
-formData.append("content",file);
-
-const response = await fetch(
-"https://dreambooth-api-experimental.replicate.com/upload",
-{
+const upload =
+await fetch("https://tmpfiles.org/api/v1/upload",{
 method:"POST",
-
-headers:{
-Authorization:`Token ${API_TOKEN}`
-},
-
 body:formData
+});
 
-}
+const uploadData = await upload.json();
+
+let imageUrl =
+uploadData.data.url;
+
+imageUrl =
+imageUrl.replace(
+"https://tmpfiles.org/",
+"https://tmpfiles.org/dl/"
 );
 
-const data = await response.json();
-
-return data.url;
-
-}
-
-async function generateMotion(){
-
-const photo =
-document.getElementById("photoInput").files[0];
-
-const motionVideo =
-document.getElementById("videoInput").files[0];
-
-if(!photo || !motionVideo){
-
-alert("Photo aur Motion Video upload karo");
-
-return;
-
-}
-
-document.getElementById("status").innerHTML =
-"AI Generating Motion...";
-
 document.getElementById("preview").src =
-URL.createObjectURL(photo);
+URL.createObjectURL(imageFile);
 
-try{
-
-const imageUrl = await uploadFile(photo);
-
-const videoUrl = await uploadFile(motionVideo);
+document.getElementById("status").innerText =
+"Generating AI video...";
 
 const response = await fetch(
 "https://api.replicate.com/v1/predictions",
 {
 method:"POST",
-
 headers:{
-"Content-Type":"application/json",
-Authorization:`Token ${API_TOKEN}`
+"Authorization":"Token " + API_TOKEN,
+"Content-Type":"application/json"
 },
-
 body:JSON.stringify({
-
-version:
-"3f0457eaf0f7c5b2d3f3a4d2fdbef674e7dc86d51fdd8f04fbfdbb6c4d7a8f2d",
-
+version:"b19c7d5f5a8b6f80d8f3f0c84f0b5c6f",
 input:{
 image:imageUrl,
-motion_video:videoUrl
+prompt:"person talking naturally",
+duration:5,
+quality:"720p"
 }
-
 })
-
 }
 );
 
-const prediction = await response.json();
+const data = await response.json();
 
-checkStatus(prediction.urls.get);
+const id = data.id;
 
-}
-catch(error){
-
-console.log(error);
-
-document.getElementById("status").innerHTML =
-"Error aa gaya";
+checkResult(id);
 
 }
 
-}
+async function checkResult(id){
 
-async function checkStatus(url){
+const interval = setInterval(async()=>{
 
-const response = await fetch(url,{
-
+const response = await fetch(
+"https://api.replicate.com/v1/predictions/" + id,
+{
 headers:{
-Authorization:`Token ${API_TOKEN}`
+"Authorization":"Token " + API_TOKEN
+}
+}
+);
+
+const data = await response.json();
+
+document.getElementById("status").innerText =
+data.status;
+
+if(data.status==="succeeded"){
+
+clearInterval(interval);
+
+document.getElementById("video").src =
+data.output;
+
+document.getElementById("status").innerText =
+"Video Generated Successfully";
+
 }
 
-});
+if(data.status==="failed"){
 
-const result = await response.json();
+clearInterval(interval);
 
-if(result.status==="succeeded"){
-
-document.getElementById("status").innerHTML =
-"Motion Generated Successfully";
-
-document.getElementById("outputVideo").src =
-result.output;
+document.getElementById("status").innerText =
+"Failed";
 
 }
-else if(result.status==="failed"){
 
-document.getElementById("status").innerHTML =
-"Generation Failed";
-
-}
-else{
-
-document.getElementById("status").innerHTML =
-"AI Processing...";
-
-setTimeout(()=>{
-checkStatus(url);
 },3000);
-
-}
 
 }
 
 </script>
 
 </body>
-
 </html>
